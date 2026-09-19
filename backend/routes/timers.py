@@ -14,7 +14,11 @@ router = APIRouter(prefix="/devices/{device_id}/timers", tags=["timers"])
 @router.post("", response_model=TimerResponse, status_code=status.HTTP_201_CREATED, summary="Create a timer for a device")
 def create_timer(device_id: str, body: TimerCreate, session: SessionDep, current_user: CurrentActiveUser):
     """
-    Creates a new timer for the specified device. The device must be owned by the authenticated user. The timer will be created with the provided schedule and settings.
+    Create a new timer for a device.
+
+    The device must be owned by the authenticated user (returns 404
+    otherwise). The timer starts in whatever enabled/disabled state the
+    request body specifies. Returns the created timer record.
     """
     device = get_owned_device(device_id, current_user.id, session)
 
@@ -28,7 +32,10 @@ def create_timer(device_id: str, body: TimerCreate, session: SessionDep, current
 @router.get("", response_model=list[TimerResponse], summary="List all timers for a device")
 def list_timers(device_id: str, session: SessionDep, current_user: CurrentActiveUser):
     """
-    Lists all timers for the specified device. The device must be owned by the authenticated user.
+    List all timers for a device, including disabled ones.
+
+    The device must be owned by the authenticated user (returns 404
+    otherwise).
     """
     device = get_owned_device(device_id, current_user.id, session)
 
@@ -40,7 +47,12 @@ def list_timers(device_id: str, session: SessionDep, current_user: CurrentActive
 @router.patch("/{timer_id}", response_model=TimerResponse, summary="Update a timer")
 def update_timer(device_id: str, timer_id: int, body: TimerUpdate, session: SessionDep, current_user: CurrentActiveUser):
     """
-    Updates an existing timer for the specified device. The device must be owned by the authenticated user.
+    Update an existing timer (partial update).
+
+    Only the fields present in the request body are changed. As a
+    side-effect, `last_triggered_date` is reset to `null` so the timer
+    can fire again today if its trigger time is still due, rather than
+    waiting until tomorrow. Returns the full updated timer record.
     """
     device = get_owned_device(device_id, current_user.id, session)
 
@@ -70,7 +82,10 @@ def update_timer(device_id: str, timer_id: int, body: TimerUpdate, session: Sess
 @router.delete("/{timer_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a timer")
 def delete_timer(device_id: str, timer_id: int, session: SessionDep, current_user: CurrentActiveUser):
     """
-    Deletes an existing timer for the specified device. The device must be owned by the authenticated user.
+    Permanently delete a timer.
+
+    This is a hard delete — the timer row is removed, not just disabled.
+    Returns 404 if the timer doesn't exist on the specified device.
     """
     device = get_owned_device(device_id, current_user.id, session)
     timer = session.exec(

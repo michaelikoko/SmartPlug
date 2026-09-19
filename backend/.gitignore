@@ -21,7 +21,8 @@ site_build
 venv
 docs.zip
 archive.zip
-
+.agents
+.codex
 # vim temporary files
 *~
 .*.sw?

@@ -1,3 +1,3 @@
 # SmartPlug Web Server
 
-FastAPI Web Server
+See the [root README](../README.md) for architecture, setup, and API documentation.

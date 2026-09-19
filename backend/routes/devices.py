@@ -20,7 +20,14 @@ def register_device(
     current_user: CurrentActiveUser,
 ):
     """
-    Register a smart plug to an authenticated user.
+    Claim an existing device by assigning it to the authenticated user.
+
+    The device must already exist in the system (pre-provisioned) and not
+    be claimed by anyone — returns 404 if the `device_id` is unknown, or
+    400 if it's already assigned to another user. On success the device is
+    enabled and the supplied `name` is applied.
+
+    Returns the full device record.
     """
     device = session.exec(
         select(Device).where(Device.device_id == body.device_id)
@@ -58,7 +65,10 @@ def register_device(
 )
 def list_devices(session: SessionDep, current_user: CurrentActiveUser):
     """
-    List all devices registered to the authenticated user.
+    List all enabled devices owned by the authenticated user.
+
+    Devices that have been soft-deleted (unregistered) are excluded —
+    only currently active, enabled devices are returned.
     """
     devices = session.exec(
         select(Device)
@@ -79,7 +89,11 @@ def get_device(
     current_user: CurrentActiveUser,
 ):
     """
-    Get a single device by device_id.
+    Retrieve a single device by its `device_id`.
+
+    Returns 404 (not 403) if the device doesn't exist, belongs to
+    another user, or has been disabled — intentionally avoids revealing
+    whether a given `device_id` exists.
     """
     device = get_owned_device(device_id, current_user.id, session)
     return device
@@ -97,7 +111,13 @@ def update_device(
     current_user: CurrentActiveUser,
 ):
     """
-    Update device name.
+    Rename a device.
+
+    Only the `name` field can be changed — `device_id` is immutable once
+    a device is registered. Returns 404 (not 403) if the device doesn't
+    exist, belongs to another user, or is disabled.
+
+    Returns the full updated device record.
     """
     device = get_owned_device(device_id, current_user.id, session)
 
@@ -119,6 +139,17 @@ def update_device_limits(
     session: SessionDep,
     current_user: CurrentActiveUser,
 ):
+    """
+    Update energy-limit settings for a device.
+
+    All fields are optional; only the ones present in the request body
+    are changed. An active cutoff (`cutoff_reason`/`cutoff_at`) is cleared
+    only when a limit field (`daily_limit_kwh` or `monthly_limit_kwh`) is
+    included — toggling `auto_cutoff_enabled` alone will not silently
+    re-arm a device that is currently cut off.
+
+    Returns the full updated device record.
+    """
     device = get_owned_device(device_id, current_user.id, session)
 
     # Clear any previous cutoff only if a limit was actually part of this request —
@@ -154,7 +185,12 @@ def delete_device(
     current_user: CurrentActiveUser,
 ):
     """
-    Unregister a device by marking it as disabled.
+    Unregister a device from the authenticated user.
+
+    This is a soft-delete: the device is marked disabled and unassigned
+    (`is_enabled=False`, `user_id=None`) rather than removed from the
+    database. Telemetry history tied to the `device_id` is preserved.
+    The device can be re-registered by any user in the future.
     """
     device = get_owned_device(device_id, current_user.id, session)
 

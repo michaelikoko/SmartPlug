@@ -14,7 +14,7 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USERNAME = os.environ["SMTP_USERNAME"]
 SMTP_PASSWORD = os.environ["SMTP_PASSWORD"]
 EMAIL_FROM = os.getenv("EMAIL_FROM", SMTP_USERNAME)
-EMAIL_FROM_NAME = os.getenv("EMAIL_FROM_NAME", "Smartsocket")
+EMAIL_FROM_NAME = os.getenv("EMAIL_FROM_NAME", "SmartPlug")
 
 OTP_EXPIRE_MINUTES = int(os.getenv("OTP_EXPIRE_MINUTES", str(10)))
 
@@ -24,10 +24,10 @@ def send_otp_email(to: str, otp: str, purpose: OtpPurpose) -> None:
     Send an OTP code via email for the specified purpose, using Gmail SMTP.
     """
     if purpose == OtpPurpose.PASSWORD_RESET:
-        subject = "Your Smartsocket Pulse password reset code"
+        subject = "Your SmartPlug Pulse password reset code"
         heading = "Reset your password"
     else:
-        subject = "Your Smartsocket Pulse verification code"
+        subject = "Your SmartPlug Pulse verification code"
         heading = "Verify your email"
 
     html = f"""

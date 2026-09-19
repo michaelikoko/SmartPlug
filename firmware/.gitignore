@@ -23,4 +23,7 @@ pytest_embedded_log/
 # MQTT credentials
 main/mqtt_secrets.h
 
-.vscode/
+.agents
+.codex
+.vscode
+.old

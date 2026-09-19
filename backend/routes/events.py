@@ -19,6 +19,14 @@ def list_events(
     limit: int = Query(default=50, le=200),
     offset: int = 0,
 ):
+    """
+    List energy events for the authenticated user, newest first.
+
+    Events are always scoped to the authenticated user — no cross-user
+    access is possible. Set `unread_only=true` to filter to unread events
+    only. Results are paginated; `total` in the response reflects the
+    count matching the current filter, not all events.
+    """
     user_id = current_user.id
 
     base_query = select(EnergyEvent).where(col(EnergyEvent.user_id) == user_id)
@@ -49,6 +57,12 @@ def mark_all_events_read(
     session: SessionDep,
     current_user: CurrentActiveUser,
 ):
+    """
+    Mark every unread event as read for the authenticated user.
+
+    Returns the number of events that were actually updated. Calling this
+    when all events are already read is a no-op (returns `marked_read: 0`).
+    """
     user_id = current_user.id
 
     result: CursorResult = session.execute(  # type: ignore[assignment]
@@ -67,6 +81,15 @@ def mark_event_read(
     session: SessionDep,
     current_user: CurrentActiveUser,
 ):
+    """
+    Mark a single event as read.
+
+    The event must belong to the authenticated user; returns 404 if it
+    doesn't exist or belongs to another user. Idempotent — marking an
+    already-read event is accepted without error.
+
+    Returns the full updated event record.
+    """
     user_id = current_user.id
 
     event = session.exec(

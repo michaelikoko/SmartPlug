@@ -1,3 +1,3 @@
-# PZEM004T
+# ESP32 Firmware
 
-Firmware code.
+See the [root README](../README.md) for architecture, setup, and hardware documentation.

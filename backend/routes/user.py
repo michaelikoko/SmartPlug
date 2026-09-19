@@ -25,7 +25,13 @@ def update_billing_rate(
     current_user: CurrentActiveUser,
 ):
     """
-    Updates the global billing rate for the authenticated user.
+    Set the user's electricity billing rate (cost per kWh).
+
+    This rate is applied globally across all of the user's devices when
+    computing `estimated_cost` in telemetry and energy-history responses.
+    Setting it to `null` disables cost estimates.
+
+    Returns the full updated user profile.
     """
     current_user.billing_rate = body.billing_rate
     
@@ -49,7 +55,11 @@ def update_profile(
     current_user: CurrentActiveUser,
 ):
     """
-    Updates the authenticated user's full_name.
+    Update the authenticated user's display name.
+
+    Only `full_name` can be changed here — email changes are not
+    supported through this endpoint. Returns the full updated user
+    profile.
     """
     current_user.full_name = body.full_name
 

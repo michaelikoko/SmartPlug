@@ -37,7 +37,15 @@ def get_telemetry(
     limit: int = Query(default=100, le=1000),
     offset: int = Query(default=0, ge=0)
 ):
-    """Endpoint to get the most recent telemetry data saved in the database"""
+    """
+    Fetch recent telemetry readings for a device, newest first.
+
+    Returns up to `limit` rows (max 1000) starting at `offset`. Each row
+    contains voltage, current, power, energy, frequency, power factor,
+    relay state, and RSSI at the time the reading was recorded. Returns
+    404 if the device has no telemetry data yet, or if it doesn't exist /
+    isn't owned by the authenticated user.
+    """
     get_owned_device(device_id, current_user.id, session)
 
     readings = session.exec(

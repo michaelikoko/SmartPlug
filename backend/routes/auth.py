@@ -231,7 +231,11 @@ def resend_verification_otp(
 )
 def login(body: LoginRequest, session: SessionDep) -> TokenResponse:
     """
-    Login user and return valid JWT token.
+    Authenticate with email and password, receive an access/refresh token pair.
+
+    Returns 403 (not 401) if the credentials are valid but the account
+    hasn't completed email verification yet — lets the client distinguish
+    "wrong password" from "needs verification" and show an appropriate UI.
     """
     user = authenticate_user(body.email, body.password, session)
 
@@ -370,6 +374,15 @@ def forgot_password(
 def verify_reset_otp(
     body: VerifyResetOtpRequest, session: SessionDep
 ) -> VerifyResetOtpResponse:
+    """
+    Verify a password-reset OTP and receive a short-lived reset token.
+
+    This is step 2 of the forgot-password flow: the client submits the
+    OTP received via email, and on success gets a one-time reset token
+    that authorises the actual password change in `/auth/reset-password`.
+    Returns a generic 401 for both unknown emails and bad OTPs to prevent
+    account enumeration.
+    """
     user = session.exec(select(User).where(User.email == body.email)).first()
 
     if user is None or user.id is None or not user.is_active:
@@ -400,6 +413,13 @@ def reset_password(
     session: SessionDep,
     token: Annotated[HTTPAuthorizationCredentials, Depends(reset_token_scheme)],
 ) -> ResetPasswordResponse:
+    """
+    Set a new password using a verified reset token.
+
+    The reset token (issued by `/auth/verify-reset-otp`) is single-use —
+    replaying it returns 401. On success, ALL of the user's active
+    refresh tokens are revoked, forcing a re-login on every device.
+    """
     if body.new_password != body.confirm_password:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -450,6 +470,9 @@ def reset_password(
 )
 def get_me(current_user: CurrentActiveUser) -> User:
     """
-    Retrieve the current authenticated user.
+    Return the profile of the currently authenticated user.
+
+    Useful for validating a stored token and hydrating a client-side
+    session on app launch.
     """
     return current_user

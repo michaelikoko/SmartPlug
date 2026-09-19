@@ -292,6 +292,15 @@ async def fulfillment(
     token: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     # publish_relay_command injected once mqtt/handlers.py is wired in
 ):
+    """
+    Google Home Graph fulfillment webhook.
+
+    Handles SYNC (report devices), QUERY (report current state), EXECUTE
+    (on/off relay commands via MQTT), and DISCONNECT intents. EXECUTE
+    will refuse to turn ON a device that has an active energy cutoff,
+    returning `deviceTurnedOff` to Google. Relay commands are optimistic
+    — the response is returned before firmware confirms the state change.
+    """
     user = _get_user_from_fulfillment_token(token, session)
     request_id = request.requestId
 
