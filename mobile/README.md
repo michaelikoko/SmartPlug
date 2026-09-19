@@ -1,3 +1,3 @@
-# Smart Wifi Plug Mobile App
+# SmartPlug Mobile App
 
-Mobile app made using React Native and Expo
+See the [root README](../README.md) for architecture, setup, and app documentation.

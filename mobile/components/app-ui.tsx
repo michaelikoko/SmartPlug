@@ -1,7 +1,7 @@
 import { HStack } from '@/components/ui/hstack';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, TextInput, View, useWindowDimensions, ScrollView } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { BarChart } from 'react-native-gifted-charts';
@@ -30,10 +30,13 @@ export function OtpInput({
   value: string;
   onChange: (v: string) => void;
 }) {
-  const inputs = useRef<(TextInput | null)[]>([]);
-  if (inputs.current.length !== length) {
-    inputs.current = Array(length).fill(null);
-  }
+  const inputs = useRef<(TextInput | null)[]>(Array(length).fill(null));
+
+  useEffect(() => {
+    if (inputs.current.length !== length) {
+      inputs.current = Array(length).fill(null);
+    }
+  }, [length]);
 
   const handleChange = (text: string, index: number) => {
     // Keep only numbers and take the last typed digit

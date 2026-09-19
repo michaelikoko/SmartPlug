@@ -15,8 +15,16 @@ const wifiChangeListeners = new Map<string, (payload: { status: 'success' | 'fai
 
 
 function getClient(): Promise<MqttClient> {
-  const MQTT_USERNAME = "hivemq.webclient.1786765038201"
-  const MQTT_PASSWORD = "HTzqmNUVYce1GDvB@ZZfvyoscyITSSbK"
+  const MQTT_USERNAME = process.env.EXPO_PUBLIC_MQTT_USERNAME;
+  const MQTT_PASSWORD = process.env.EXPO_PUBLIC_MQTT_PASSWORD;
+
+  if (!MQTT_USERNAME || !MQTT_PASSWORD) {
+    return Promise.reject(
+      new Error(
+        'EXPO_PUBLIC_MQTT_USERNAME / EXPO_PUBLIC_MQTT_PASSWORD are not set — check your .env file (see mobile/.env.example)'
+      )
+    );
+  }
 
   if (client?.connected) return Promise.resolve(client);
   if (connectPromise) return connectPromise;
@@ -31,9 +39,9 @@ function getClient(): Promise<MqttClient> {
       clientId: `smartplug-${Math.random().toString(16).slice(2, 10)}`,
       path: '/mqtt',
       clean: true,
-      reconnectPeriod: 500,     // was 2000 — retry every 0.5s instead of 2s
-      connectTimeout: 5000,     // was 10000 — fail faster if a reconnect attempt stalls
-      keepalive: 15,            // matches your firmware's tightened keepalive; detects a dead link sooner
+      reconnectPeriod: 500,     // retry every 0.5s for fast recovery from brief drops
+      connectTimeout: 5000,     // fail fast if a reconnect attempt stalls
+      keepalive: 15,            // matches the firmware's tightened keepalive; detects a dead link sooner
     });
     c.on('connect', () => {
       console.log('[mqtt] connected');
@@ -133,14 +141,12 @@ function _handleMessage(topic: string, payloadBuffer: Buffer) {
 
   if (subtopic === 'be-online-status') {
     // Backend payload: { isOnline: true|false }
-    console.log(`[mqtt] be-online-status ${deviceId} online status:`, data);
     useDeviceStateStore.getState().setOnlineStatus(deviceId, Boolean(data.is_online));
     return;
   }
 
   if (subtopic === 'be-timer-lock') {
     // Backend payload: { locked: bool, reason: string|null, locked_at: iso|null }
-    console.log(`[mqtt] be-timer-lock ${deviceId} data:`, data);
     const timerLock: LiveTimerLock = {
       locked: Boolean(data.locked),
       reason: (data.reason as string | null) ?? null,
@@ -152,14 +158,12 @@ function _handleMessage(topic: string, payloadBuffer: Buffer) {
 
   if (subtopic === 'be-daily-summary') {
     // Backend payload: CurrentEnergyResponse
-    console.log(`[mqtt] be-daily-summary ${deviceId} data:`, data);
     useDeviceStateStore.getState().setCurrentEnergyReadings(deviceId, data as any as CurrentEnergyResponse);
     return;
   }
 
   if (subtopic === "be-monthly-summary") {
     // Backend payload: MonthlyEnergyResponse
-    console.log(`[mqtt] be-monthly-summary ${deviceId} data:`, data);
     useDeviceStateStore.getState().setMonthlyEnergyReadings(deviceId, data as any as MonthlyEnergyResponse);
     return;
   }
@@ -186,10 +190,9 @@ function _handleMessage(topic: string, payloadBuffer: Buffer) {
   }
 
   if (subtopic === 'energy-event') {
-    console.log(`[mqtt] energy-event ${deviceId}:`, data);
     useDeviceStateStore.getState().incrementUnreadEvents(deviceId);
     queryClient.invalidateQueries({ queryKey: ['events'] });
-    queryClient.invalidateQueries({ queryKey: ['devices'] }); // ← add this
+    queryClient.invalidateQueries({ queryKey: ['devices'] });
     return;
   }
 }

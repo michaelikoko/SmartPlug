@@ -23,10 +23,15 @@ import axios, {
 } from 'axios';
 import { useAuthStore } from '../store/auth-store';
 
-//const BASE_URL = 'http://10.226.208.30:8000/api/v1';
-const BASE_URL = 'https://smart-wifi-socket.pxxlspace.cv/api/v1';
-//const BASE_URL = 'https://smart-wifi-plug.onrender.com/api/v1';
-//const BASE_URL = 'https://7287-105-119-35-32.ngrok-free.app/api/v1';
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+
+if (!BASE_URL) {
+  throw new Error(
+    'EXPO_PUBLIC_API_BASE_URL is not set — check your .env file (see mobile/.env.example). ' +
+      'Switching between local/staging/production backends is done by changing this env var, ' +
+      'not by editing this file.'
+  );
+}
 
 const apiClient = axiosCreate({
   baseURL: BASE_URL,
@@ -130,7 +135,6 @@ apiClient.interceptors.response.use(
         access_token: string;
         refresh_token: string;
       }>(`${BASE_URL}/auth/refresh`, { refresh_token: refreshToken });
-      console.log('Token refreshed successfully:', data);
       const { access_token, refresh_token } = data;
 
       // Persist the rotated pair
